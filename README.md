@@ -2,8 +2,10 @@
 
 > Scaffold a Selenium-based automation test project in seconds.
 
+> **Note:** This is a project scaffolding tool, not a library. Do not use `npm install create-please-test`.
+
 ```bash
-npm create please-test my-project
+npm create please-test@latest my-project
 ```
 
 The built-in template is pre-configured against **[practicetestautomation.com/practice-test-login](https://practicetestautomation.com/practice-test-login/)** — runs out of the box with no extra setup.

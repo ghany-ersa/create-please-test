@@ -6,7 +6,10 @@ const path = require('path')
 const projectName = process.argv[2]
 
 if (!projectName) {
-    console.error('Usage: npm create please.js <project-name>')
+    console.error('\nUsage:')
+    console.error('  npm create please-test@latest <project-name>\n')
+    console.error('Note: This is a scaffolding tool, not a library.')
+    console.error('  Do not use "npm i create-please-test".\n')
     process.exit(1)
 }
 
