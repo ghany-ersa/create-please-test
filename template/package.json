@@ -7,7 +7,7 @@
         "report": "mocha --recursive --timeout 100000 index.js --reporter mochawesome --reporter-options code=false,charts=true,assetsDir=report/assets,reportDir=report,reportFilename=index,reportPageTitle=Test Report"
     },
     "dependencies": {
-        "please-test": "^1.0.0",
+        "please-test": "^1.1.0",
         "selenium-webdriver": "^4.0.0"
     },
     "devDependencies": {

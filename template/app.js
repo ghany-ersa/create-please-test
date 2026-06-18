@@ -1,11 +1,7 @@
-const { Builder } = require('selenium-webdriver')
-const pleaseClass = require('please-test')
+const Please = require('please-test')
 const AuthComponent = require('./components/auth')
 
-const driver = new Builder().forBrowser('chrome').build()
-driver.manage().window().maximize()
-
-const please = new pleaseClass(driver)
+const please = new Please()
 
 module.exports = {
     please,

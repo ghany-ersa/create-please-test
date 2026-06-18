@@ -1,15 +1,15 @@
 require('dotenv').config()
 
-const base_url = process.env.BASE_URL
+const baseUrl = process.env.BASE_URL
 
 module.exports = {
-    URL: {
+    PAGE: {
         login: {
-            url: `${base_url}/practice-test-login/`,
+            url: `${baseUrl}/practice-test-login/`,
             title: 'Test Login | Practice Test Automation'
         },
         dashboard: {
-            url: `${base_url}/logged-in-successfully/`,
+            url: `${baseUrl}/logged-in-successfully/`,
             title: 'Logged In Successfully | Practice Test Automation'
         }
     },

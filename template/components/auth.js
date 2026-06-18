@@ -1,17 +1,16 @@
-let please
 class Auth {
-    constructor(master) {
-        please = master
+    constructor(please) {
+        this.please = please
     }
 
     async login(user) {
-        await please.fill('input username', '#username', user.username)
-        await please.fill('input password', '#password', user.password)
-        await please.click('button submit', '#submit')
+        await this.please.fill('input username', '#username', user.username)
+        await this.please.fill('input password', '#password', user.password)
+        await this.please.click('button submit', '#submit')
     }
 
     async logout() {
-        await please.click('button logout', 'link=Log out')
+        await this.please.click('button logout', 'link=Log out')
     }
 }
 

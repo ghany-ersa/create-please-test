@@ -24,7 +24,7 @@ The built-in template is pre-configured against **[practicetestautomation.com/pr
 ## Requirements
 
 - Node.js >= 14
-- Chrome browser + [ChromeDriver](https://chromedriver.chromium.org/) installed and on your `PATH`
+- Chrome browser (ChromeDriver dikelola otomatis oleh `selenium-manager` bawaan Selenium 4)
 
 ---
 
@@ -100,17 +100,13 @@ The template includes **5 login scenarios** against `practicetestautomation.com`
 
 ## How It Works
 
-### `app.js` — Driver & shared instances
+### `app.js` — Shared instances
 
 ```js
-const { Builder } = require('selenium-webdriver')
-const pleaseClass = require('please-test')
+const Please = require('please-test')
 const AuthComponent = require('./components/auth')
 
-const driver = new Builder().forBrowser('chrome').build()
-driver.manage().window().maximize()
-
-const please = new pleaseClass(driver)
+const please = new Please()
 
 module.exports = {
     please,
@@ -122,17 +118,17 @@ module.exports = {
 
 ---
 
-### `data/main.js` — URLs and accounts
+### `data/main.js` — Pages and accounts
 
 ```js
 module.exports = {
-    URL: {
+    PAGE: {
         login: {
-            url: `${base_url}/practice-test-login/`,
+            url: `${baseUrl}/practice-test-login/`,
             title: 'Test Login | Practice Test Automation'
         },
         dashboard: {
-            url: `${base_url}/logged-in-successfully/`,
+            url: `${baseUrl}/logged-in-successfully/`,
             title: 'Logged In Successfully | Practice Test Automation'
         }
     },
@@ -153,14 +149,18 @@ Add new pages and accounts here instead of hardcoding values in spec files.
 
 ```js
 class Auth {
+    constructor(please) {
+        this.please = please
+    }
+
     async login(user) {
-        await please.fill('username input', '#username', user.username)
-        await please.fill('password input', '#password', user.password)
-        await please.click('submit button', '#submit')
+        await this.please.fill('input username', '#username', user.username)
+        await this.please.fill('input password', '#password', user.password)
+        await this.please.click('button submit', '#submit')
     }
 
     async logout() {
-        await please.click('logout button', 'link=Log out')
+        await this.please.click('button logout', 'link=Log out')
     }
 }
 ```
@@ -173,20 +173,22 @@ Components encapsulate page interactions so spec files stay readable and DRY.
 
 ```js
 const { please, AUTH } = require('../app')
-const { URL, ACCOUNT } = require('../data/main')
+const { PAGE, ACCOUNT } = require('../data/main')
 
 describe('Login - practicetestautomation.com', () => {
-    it('shows error on wrong username', async () => {
-        await please.goTo(URL.login)
-        await AUTH.login(ACCOUNT.wrongUsername)
-        await please.see('error message', '//div[@id="error"]', 'Your username is invalid!')
+    beforeEach(async () => {
+        await please.goTo(PAGE.login)
     })
 
-    it('redirects to dashboard on successful login', async () => {
-        await please.goTo(URL.login)
+    it('login gagal - username salah', async () => {
+        await AUTH.login(ACCOUNT.wrongUsername)
+        please.equal(await please.see('pesan error', '//div[@id="error"]'), 'Your username is invalid!')
+    })
+
+    it('login berhasil', async () => {
         await AUTH.login(ACCOUNT.valid)
-        await please.checkWhere(URL.dashboard)
-        await please.see('success heading', '//h1', 'Logged In Successfully')
+        await please.checkWhere(PAGE.dashboard)
+        please.equal(await please.see('teks sukses', '//h1'), 'Logged In Successfully')
         await AUTH.logout()
     })
 })
