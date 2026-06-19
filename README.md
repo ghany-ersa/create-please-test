@@ -1,6 +1,6 @@
 # create-please-test
 
-> Scaffold a Selenium-based automation test project in seconds.
+> Scaffold a Playwright-based automation test project in seconds.
 
 > **Note:** This is a project scaffolding tool, not a library. Do not use `npm install create-please-test`.
 
@@ -16,17 +16,15 @@ The built-in template is pre-configured against **[practicetestautomation.com/pr
 
 `create-please-test` generates a ready-to-run E2E test project using:
 
-- **[please-test](https://www.npmjs.com/package/please-test)** — a readable Selenium wrapper
-- **[selenium-webdriver](https://www.npmjs.com/package/selenium-webdriver)** — browser automation
-- **[Mocha](https://mochajs.org/)** — test runner
-- **[Mochawesome](https://www.npmjs.com/package/mochawesome)** — HTML test report
+- **[please-test](https://www.npmjs.com/package/please-test)** — a readable Playwright wrapper
+- **[@playwright/test](https://playwright.dev/)** — browser automation and test runner
 
 ---
 
 ## Requirements
 
-- Node.js >= 14
-- Chrome browser (ChromeDriver dikelola otomatis oleh `selenium-manager` bawaan Selenium 4)
+- Node.js >= 18
+- Chrome browser (dikelola otomatis oleh Playwright)
 
 ---
 
@@ -42,7 +40,10 @@ cd my-project
 # 3. Install dependencies
 npm install
 
-# 4. Copy the environment file
+# 4. Install Playwright browsers
+npx playwright install chromium
+
+# 5. Copy the environment file
 cp .env.example .env
 ```
 
@@ -55,10 +56,10 @@ ACCOUNT_PASSWORD=Password123
 ```
 
 ```bash
-# 5. Run the tests
+# 6. Run the tests
 npm test
 
-# (Optional) Generate an HTML report
+# (Optional) Open the HTML report
 npm run report
 ```
 
@@ -68,8 +69,8 @@ npm run report
 
 ```
 my-project/
-├── index.js              # Entry point — enable/disable spec files here
-├── app.js                # WebDriver setup + shared module exports
+├── playwright.config.js  # Playwright configuration
+├── app.js                # Factory function — creates please + components per test
 ├── package.json
 ├── .env.example          # Environment variable template
 ├── .gitignore
@@ -102,21 +103,24 @@ The template includes **5 login scenarios** against `practicetestautomation.com`
 
 ## How It Works
 
-### `app.js` — Shared instances
+### `app.js` — Per-test factory
 
 ```js
 const Please = require('please-test')
 const AuthComponent = require('./components/auth')
 
-const please = new Please()
-
-module.exports = {
-    please,
-    AUTH: new AuthComponent(please)
+function createApp(page) {
+    const please = new Please(page)
+    return {
+        please,
+        AUTH: new AuthComponent(please)
+    }
 }
+
+module.exports = { createApp }
 ```
 
-`please` is the main Selenium wrapper. All test files import it from `app.js`.
+Setiap test memanggil `createApp(page)` dengan `page` dari Playwright fixture. Ini memastikan setiap test berjalan terisolasi.
 
 ---
 
@@ -143,8 +147,6 @@ module.exports = {
 }
 ```
 
-Add new pages and accounts here instead of hardcoding values in spec files.
-
 ---
 
 ### `components/auth.js` — Reusable actions
@@ -162,49 +164,67 @@ class Auth {
     }
 
     async logout() {
-        await this.please.click('button logout', 'link=Log out')
+        await this.please.click('button logout', 'text=Log out')
     }
 }
 ```
-
-Components encapsulate page interactions so spec files stay readable and DRY.
 
 ---
 
 ### `feature/login.spec.js` — Example test
 
 ```js
-const { please, AUTH } = require('../app')
+const { test } = require('@playwright/test')
+const { createApp } = require('../app')
 const { PAGE, ACCOUNT } = require('../data/main')
 
-describe('Login - practicetestautomation.com', () => {
-    beforeEach(async () => {
-        await please.goTo(PAGE.login)
-    })
+test.describe('Login - practicetestautomation.com', () => {
 
-    it('login gagal - username salah', async () => {
-        await AUTH.login(ACCOUNT.wrongUsername)
-        please.equal(await please.see('pesan error', '//div[@id="error"]'), 'Your username is invalid!')
-    })
-
-    it('login berhasil', async () => {
+    test('login berhasil', async ({ page }) => {
+        const { please, AUTH } = createApp(page)
+        await please.goto(PAGE.login)
         await AUTH.login(ACCOUNT.valid)
-        await please.checkWhere(PAGE.dashboard)
-        please.equal(await please.see('teks sukses', '//h1'), 'Logged In Successfully')
+        await please.verifyPage(PAGE.dashboard)
+        await please.see('teks sukses', 'h1', 'Logged In Successfully')
         await AUTH.logout()
     })
+
+    test('login gagal - username salah', async ({ page }) => {
+        const { please, AUTH } = createApp(page)
+        await please.goto(PAGE.login)
+        await AUTH.login(ACCOUNT.wrongUsername)
+        await please.see('pesan error', '#error', 'Your username is invalid!')
+    })
+
 })
 ```
 
-Each `it` block is one test case. Use components like `AUTH` to keep interaction logic out of the spec.
+Setiap `test` block mendapat `page` sendiri dari Playwright — tidak ada shared state antar test.
 
 ---
 
-### `index.js` — Toggle which specs run
+## please-test API
 
-```js
-require('./feature/login.spec')
-// require('./feature/checkout.spec')   // uncomment to enable
+| Method | Description |
+|--------|-------------|
+| `please.goto({ url, title? })` | Navigasi ke URL, opsional verifikasi title |
+| `please.verifyPage({ url?, title? })` | Verifikasi URL dan/atau title halaman saat ini |
+| `please.click(label, selector, delay?)` | Klik elemen |
+| `please.fill(label, selector, value)` | Isi input field |
+| `please.see(label, selector, expected?)` | Ambil teks/nilai elemen, opsional assert |
+| `please.untilShow(label, selector, timeout?)` | Tunggu elemen muncul |
+| `please.screenshot(label?)` | Ambil screenshot |
+
+### Selector yang didukung
+
+```
+#id          → CSS id
+.class       → CSS class
+button=Name  → role=button[name=Name] (shorthand ARIA)
+text=...     → teks konten
+label=...    → form label
+role=...     → ARIA role
+//xpath      → XPath
 ```
 
 ---
@@ -214,7 +234,8 @@ require('./feature/login.spec')
 1. **Add URLs/data** in `data/main.js`
 2. **Create a component** in `components/` (e.g. `components/checkout.js`)
 3. **Write the spec** in `feature/checkout.spec.js`
-4. **Enable it** by adding `require('./feature/checkout.spec')` in `index.js`
+
+Playwright otomatis menemukan semua file `*.spec.js` di folder `feature/`.
 
 ---
 
@@ -222,8 +243,8 @@ require('./feature/login.spec')
 
 | Command | Description |
 |---------|-------------|
-| `npm test` | Run all enabled specs in the terminal |
-| `npm run report` | Run tests and generate an HTML report at `report/index.html` |
+| `npm test` | Run all spec files |
+| `npm run report` | Run tests and open HTML report |
 
 ---
 

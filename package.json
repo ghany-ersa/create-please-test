@@ -1,14 +1,13 @@
 {
     "name": "create-please-test",
-    "version": "1.1.2",
+    "version": "1.0.0",
     "description": "Scaffold a new automation test project using please-test",
     "main": "index.js",
     "bin": {
         "create-please-test": "index.js"
     },
     "keywords": [
-        "selenium",
-        "webdriver",
+        "playwright",
         "automation",
         "testing",
         "e2e",
@@ -23,7 +22,7 @@
         "url": "git+https://github.com/ghany-ersa/create-please-test.git"
     },
     "engines": {
-        "node": ">=14.0.0"
+        "node": ">=18.0.0"
     },
     "files": [
         "index.js",

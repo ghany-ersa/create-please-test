@@ -1,9 +1,16 @@
 const Please = require('please-test')
-const AuthComponent = require('./components/auth')
+const Auth = require('./components/auth')
 
-const please = new Please()
-
-module.exports = {
-    please,
-    AUTH: new AuthComponent(please)
+/**
+ * @param {import('@playwright/test').Page} page
+ * @returns {{ please: import('please-test').default, AUTH: Auth }}
+ */
+function createApp(page) {
+    const please = new Please(page)
+    return {
+        please,
+        AUTH: new Auth(please)
+    }
 }
+
+module.exports = { createApp }

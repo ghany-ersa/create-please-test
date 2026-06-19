@@ -1,32 +1,41 @@
-const { please, AUTH } = require('../app')
-const { PAGE, ACCOUNT } = require('../data/main')
+const { test } = require('@playwright/test')
+const { createApp } = require('../app')
+const { ACCOUNT } = require('../data/main')
 
-describe('Login - practicetestautomation.com', () => {
-    beforeEach(async () => {
-        await please.goTo(PAGE.login)
+test.describe('Login - practicetestautomation.com', () => {
+
+    test('menampilkan halaman login', async ({ page }) => {
+        const { AUTH } = createApp(page)
+        await AUTH.goto()
     })
 
-    it('menampilkan halaman login', async () => {})
-
-    it('login gagal - username salah', async () => {
+    test('login gagal - username salah', async ({ page }) => {
+        const { AUTH } = createApp(page)
+        await AUTH.goto()
         await AUTH.login(ACCOUNT.wrongUsername)
-        please.equal(await please.see('pesan error', '//div[@id="error"]'), 'Your username is invalid!')
+        await AUTH.seeError('Your username is invalid!')
     })
 
-    it('login gagal - password salah', async () => {
+    test('login gagal - password salah', async ({ page }) => {
+        const { AUTH } = createApp(page)
+        await AUTH.goto()
         await AUTH.login(ACCOUNT.wrongPassword)
-        please.equal(await please.see('pesan error', '//div[@id="error"]'), 'Your password is invalid!')
+        await AUTH.seeError('Your password is invalid!')
     })
 
-    it('login gagal - form kosong', async () => {
+    test('login gagal - form kosong', async ({ page }) => {
+        const { AUTH } = createApp(page)
+        await AUTH.goto()
         await AUTH.login(ACCOUNT.empty)
-        please.equal(await please.see('pesan error', '//div[@id="error"]'), 'Your username is invalid!')
+        await AUTH.seeError('Your username is invalid!')
     })
 
-    it('login berhasil', async () => {
+    test('login berhasil', async ({ page }) => {
+        const { AUTH } = createApp(page)
+        await AUTH.goto()
         await AUTH.login(ACCOUNT.valid)
-        await please.checkWhere(PAGE.dashboard)
-        please.equal(await please.see('teks sukses', '//h1'), 'Logged In Successfully')
+        await AUTH.seeDashboard()
         await AUTH.logout()
     })
+
 })
