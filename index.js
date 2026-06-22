@@ -2,14 +2,32 @@
 
 const fs = require('fs')
 const path = require('path')
+const { execSync } = require('child_process')
 
+const currentVersion = require('./package.json').version
 const projectName = process.argv[2]
+
+function getLatestVersion() {
+    try {
+        return execSync('npm view create-please-test version', { timeout: 5000 }).toString().trim()
+    } catch {
+        return null
+    }
+}
 
 if (!projectName) {
     console.error('\nUsage:')
     console.error('  npm create please-test@latest <project-name>\n')
     console.error('Note: This is a scaffolding tool, not a library.')
     console.error('  Do not use "npm i create-please-test".\n')
+    process.exit(1)
+}
+
+const latestVersion = getLatestVersion()
+if (latestVersion && latestVersion !== currentVersion) {
+    console.warn(`\nWarning: You are using create-please-test v${currentVersion}, but v${latestVersion} is available.`)
+    console.warn('Run with the latest version:')
+    console.warn(`  npm create please-test@latest ${projectName}\n`)
     process.exit(1)
 }
 
