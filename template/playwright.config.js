@@ -17,7 +17,10 @@ if (!browserMap[browser]) {
 module.exports = defineConfig({
     testDir: './feature',
     timeout: 60000,
-    reporter: 'html',
+    reporter: [
+        ['html', { open: 'never' }],
+        ['./reporter/please-reporter.js'],
+    ],
     use: {
         headless: process.env.HEADLESS !== 'false',
         screenshot: 'only-on-failure',

@@ -4,7 +4,7 @@
     "description": "Automation test project using please-test",
     "scripts": {
         "test": "playwright test",
-        "report": "playwright test --reporter=html && playwright show-report"
+        "report": "playwright test && open please-report/index.html"
     },
     "dependencies": {
         "please-test": "^1.0.0"
