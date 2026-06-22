@@ -18,6 +18,7 @@ module.exports = defineConfig({
     testDir: './feature',
     timeout: 60000,
     reporter: [
+        ['list'],
         ['./reporter/please-reporter.js'],
     ],
     use: {

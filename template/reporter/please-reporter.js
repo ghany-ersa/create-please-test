@@ -27,7 +27,7 @@ class PleaseReporter {
         const outputPath = path.resolve(process.cwd(), this._outputFile)
         fs.mkdirSync(path.dirname(outputPath), { recursive: true })
         fs.writeFileSync(outputPath, html, 'utf8')
-        console.log(`\nReport generated. Run "npm run report" to open it in the browser.\n`)
+        console.log(`\nRun "npm run report" to open it in the browser.\n`)
     }
 
     /** @param {any} suite @returns {Suite[]} */
