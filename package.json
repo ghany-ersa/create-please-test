@@ -1,6 +1,6 @@
 {
     "name": "create-please-test",
-    "version": "2.0.1",
+    "version": "2.0.2",
     "description": "Scaffold a new automation test project using please-test",
     "main": "index.js",
     "bin": {
