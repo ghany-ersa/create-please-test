@@ -109,8 +109,8 @@ The template includes **5 login scenarios** against `practicetestautomation.com`
 const Please = require('please-test')
 const AuthComponent = require('./components/auth')
 
-function createApp(page) {
-    const please = new Please(page)
+function createApp(page, test) {
+    const please = new Please(page, test)
     return {
         please,
         AUTH: new AuthComponent(please)
@@ -120,7 +120,7 @@ function createApp(page) {
 module.exports = { createApp }
 ```
 
-Setiap test memanggil `createApp(page)` dengan `page` dari Playwright fixture. Ini memastikan setiap test berjalan terisolasi.
+Setiap test memanggil `createApp(page, test)` dengan `page` dan `test` dari Playwright fixture. Parameter `test` memungkinkan `please-test` melaporkan langkah-langkah sebagai `test.step` di HTML report. Ini memastikan setiap test berjalan terisolasi.
 
 ---
 
@@ -181,19 +181,18 @@ const { PAGE, ACCOUNT } = require('../data/main')
 test.describe('Login - practicetestautomation.com', () => {
 
     test('login berhasil', async ({ page }) => {
-        const { please, AUTH } = createApp(page)
-        await please.goto(PAGE.login)
+        const { AUTH } = createApp(page, test)
+        await AUTH.goto()
         await AUTH.login(ACCOUNT.valid)
-        await please.verifyPage(PAGE.dashboard)
-        await please.see('teks sukses', 'h1', 'Logged In Successfully')
+        await AUTH.seeDashboard()
         await AUTH.logout()
     })
 
     test('login gagal - username salah', async ({ page }) => {
-        const { please, AUTH } = createApp(page)
-        await please.goto(PAGE.login)
+        const { AUTH } = createApp(page, test)
+        await AUTH.goto()
         await AUTH.login(ACCOUNT.wrongUsername)
-        await please.see('pesan error', '#error', 'Your username is invalid!')
+        await AUTH.seeError('Your username is invalid!')
     })
 
 })
@@ -209,11 +208,19 @@ Setiap `test` block mendapat `page` sendiri dari Playwright — tidak ada shared
 |--------|-------------|
 | `please.goto({ url, title? })` | Navigasi ke URL, opsional verifikasi title |
 | `please.verifyPage({ url?, title? })` | Verifikasi URL dan/atau title halaman saat ini |
+| `please.url()` | Ambil URL halaman saat ini |
+| `please.title()` | Ambil title halaman saat ini |
 | `please.click(label, selector, delay?)` | Klik elemen |
 | `please.fill(label, selector, value)` | Isi input field |
+| `please.fillAndEnter(label, selector, value)` | Isi input field lalu tekan Enter |
+| `please.clear(label, selector)` | Kosongkan input field |
+| `please.scrollTo(label, selector)` | Scroll halaman ke posisi elemen |
+| `please.uploadFile(label, selector, filePath)` | Upload file ke input type=file |
+| `please.datepicker(label, selector, value)` | Isi date picker dengan format tanggal |
 | `please.see(label, selector, expected?)` | Ambil teks/nilai elemen, opsional assert |
-| `please.untilShow(label, selector, timeout?)` | Tunggu elemen muncul |
-| `please.screenshot(label?)` | Ambil screenshot |
+| `please.untilShow(label, selector, timeout?)` | Tunggu elemen muncul (default 20 detik) |
+| `please.wait(ms?)` | Pause eksekusi selama N milidetik |
+| `please.screenshot(label?)` | Ambil screenshot, simpan ke folder `screenshots/` |
 
 ### Selector yang didukung
 

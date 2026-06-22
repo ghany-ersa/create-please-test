@@ -7,7 +7,7 @@ declare module 'please-test' {
     }
 
     export default class Please {
-        constructor(page: Page)
+        constructor(page: Page, test?: import('@playwright/test').TestType<any, any>)
         detectLocator(selector: string): string
         toLocator(selector: string): Locator
         goto(target: PageTarget): Promise<void>
