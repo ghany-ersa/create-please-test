@@ -18,7 +18,6 @@ module.exports = defineConfig({
     testDir: './feature',
     timeout: 60000,
     reporter: [
-        ['html', { open: 'never' }],
         ['./reporter/please-reporter.js'],
     ],
     use: {

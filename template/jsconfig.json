@@ -1,9 +1,6 @@
 {
     "compilerOptions": {
         "checkJs": true,
-        "strict": false,
-        "paths": {
-            "please-test": ["./please.d.ts"]
-        }
+        "strict": false
     }
 }
