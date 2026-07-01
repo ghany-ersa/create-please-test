@@ -1,34 +1,32 @@
-require('dotenv').config()
-
-const baseUrl = process.env.BASE_URL
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') })
 
 module.exports = {
     PAGE: {
         login: {
-            url: `${baseUrl}/practice-test-login/`,
-            title: 'Test Login | Practice Test Automation'
+            url: `${process.env.BASE_URL}/practice-test-login/`,
+            title: 'Test Login | Practice Test Automation',
         },
         dashboard: {
-            url: `${baseUrl}/logged-in-successfully/`,
-            title: 'Logged In Successfully | Practice Test Automation'
-        }
+            url: `${process.env.BASE_URL}/logged-in-successfully/`,
+            title: 'Logged In Successfully | Practice Test Automation',
+        },
     },
     ACCOUNT: {
         valid: {
             username: process.env.ACCOUNT_USERNAME,
-            password: process.env.ACCOUNT_PASSWORD
+            password: process.env.ACCOUNT_PASSWORD,
         },
         wrongPassword: {
             username: process.env.ACCOUNT_USERNAME,
-            password: 'wrongpassword'
+            password: 'wrongpassword',
         },
         wrongUsername: {
             username: 'invaliduser',
-            password: process.env.ACCOUNT_PASSWORD
+            password: process.env.ACCOUNT_PASSWORD,
         },
         empty: {
             username: '',
-            password: ''
-        }
-    }
+            password: '',
+        },
+    },
 }

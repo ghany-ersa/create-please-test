@@ -2,7 +2,7 @@ const { test } = require('@playwright/test')
 const { createApp } = require('../app')
 const { ACCOUNT } = require('../data/main')
 
-test.describe.skip('Login - practicetestautomation.com', () => {
+test.describe.skip('Login - using component', () => {
 
     test('menampilkan halaman login', async ({ page }) => {
         const { AUTH } = createApp(page, test)

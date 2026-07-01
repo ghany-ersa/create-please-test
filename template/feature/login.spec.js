@@ -2,7 +2,7 @@ const { test } = require('@playwright/test')
 const { createApp } = require('../app')
 const { PAGE } = require('../data/main')
 
-test.describe('Login - practicetestautomation.com', () => {
+test.describe('Login', () => {
 
     test('menampilkan halaman login', async ({ page }) => {
         const { please } = createApp(page, test)
