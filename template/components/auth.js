@@ -4,7 +4,7 @@ const { PAGE } = require('../data/main')
 function Auth(please) {
     return {
         async goto() {
-            await please.goto(PAGE.login)
+            await please.goto(PAGE.login.url, PAGE.login.title)
         },
 
         /** @param {{ username: string, password: string }} user */
@@ -24,7 +24,7 @@ function Auth(please) {
         },
 
         async seeDashboard() {
-            await please.verifyPage(PAGE.dashboard)
+            await please.verifyPage(PAGE.dashboard.url, PAGE.dashboard.title)
             return please.see('teks sukses', 'h1', 'Logged In Successfully')
         }
     }

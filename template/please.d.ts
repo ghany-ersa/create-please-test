@@ -1,17 +1,12 @@
 declare module 'please-test' {
     import { Page, Locator } from '@playwright/test'
 
-    export interface PageTarget {
-        url: string
-        title?: string
-    }
-
     export default class Please {
         constructor(page: Page, test?: import('@playwright/test').TestType<any, any>)
         detectLocator(selector: string): string
         toLocator(selector: string): Locator
-        goto(target: PageTarget): Promise<void>
-        verifyPage(target: PageTarget): Promise<void>
+        goto(url: string, title?: string): Promise<void>
+        verifyPage(url: string, title?: string): Promise<void>
         url(): Promise<string>
         title(): Promise<string>
         untilShow(label: string, selector: string, timeout?: number): Promise<void>

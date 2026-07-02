@@ -24,7 +24,7 @@ The built-in template is pre-configured against **[practicetestautomation.com/pr
 ## Requirements
 
 - Node.js >= 18
-- Chrome browser (dikelola otomatis oleh Playwright)
+- Browser binary managed by Playwright (`npx playwright install <browser>`)
 
 ---
 
@@ -53,7 +53,12 @@ cp .env.example .env
 BASE_URL=https://practicetestautomation.com
 ACCOUNT_USERNAME=student
 ACCOUNT_PASSWORD=Password123
+HEADLESS=true
+BROWSER=chromium
 ```
+
+- `HEADLESS` — `false` to run with a visible browser window
+- `BROWSER` — `chromium`, `firefox`, or `webkit` (see `playwright.config.js`)
 
 ```bash
 # 6. Run the tests
@@ -69,20 +74,28 @@ npm run report
 
 ```
 my-project/
-├── playwright.config.js  # Playwright configuration
-├── app.js                # Factory function — creates please + components per test
+├── playwright.config.js         # Playwright configuration
+├── app.js                       # Factory function — creates please + components per test
 ├── package.json
-├── .env.example          # Environment variable template
+├── jsconfig.json                # Editor IntelliSense config
+├── .env.example                 # Environment variable template
 ├── .gitignore
 │
 ├── data/
-│   └── main.js           # Page URLs and test account data
+│   └── main.js                  # Page URLs and test account data (reads from .env)
 │
 ├── components/
-│   └── auth.js           # Reusable login/logout actions
+│   └── auth.js                  # Reusable login/logout/assertion actions
 │
-└── feature/
-    └── login.spec.js     # Example login test suite
+├── feature/
+│   ├── login.spec.js            # Example login test suite (uses `please` directly)
+│   └── login-using-component.spec.js  # Same suite rewritten with `AUTH` component (skipped by default)
+│
+├── reporter/
+│   └── please-reporter.js       # Custom Playwright reporter — builds the HTML report
+│
+└── scripts/
+    └── open-report.js           # Local static server for `npm run report`
 ```
 
 ---
@@ -107,13 +120,13 @@ The template includes **5 login scenarios** against `practicetestautomation.com`
 
 ```js
 const Please = require('please-test')
-const AuthComponent = require('./components/auth')
+const Auth = require('./components/auth')
 
 function createApp(page, test) {
     const please = new Please(page, test)
     return {
         please,
-        AUTH: AuthComponent(please)
+        AUTH: Auth(please)
     }
 }
 
@@ -126,24 +139,28 @@ Setiap test memanggil `createApp(page, test)` dengan `page` dan `test` dari Play
 
 ### `data/main.js` — Pages and accounts
 
+Values are read from `.env` via `dotenv`, so credentials never live in the source code.
+
 ```js
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') })
+
 module.exports = {
     PAGE: {
         login: {
-            url: `${baseUrl}/practice-test-login/`,
-            title: 'Test Login | Practice Test Automation'
+            url: `${process.env.BASE_URL}/practice-test-login/`,
+            title: 'Test Login | Practice Test Automation',
         },
         dashboard: {
-            url: `${baseUrl}/logged-in-successfully/`,
-            title: 'Logged In Successfully | Practice Test Automation'
-        }
+            url: `${process.env.BASE_URL}/logged-in-successfully/`,
+            title: 'Logged In Successfully | Practice Test Automation',
+        },
     },
     ACCOUNT: {
-        valid:         { username: 'student',     password: 'Password123' },
-        wrongPassword: { username: 'student',     password: 'wrongpassword' },
-        wrongUsername: { username: 'invaliduser', password: 'Password123' },
-        empty:         { username: '',            password: '' }
-    }
+        valid:         { username: process.env.ACCOUNT_USERNAME, password: process.env.ACCOUNT_PASSWORD },
+        wrongPassword: { username: process.env.ACCOUNT_USERNAME, password: 'wrongpassword' },
+        wrongUsername: { username: 'invaliduser',                password: process.env.ACCOUNT_PASSWORD },
+        empty:         { username: '',                           password: '' },
+    },
 }
 ```
 
@@ -152,8 +169,14 @@ module.exports = {
 ### `components/auth.js` — Reusable actions
 
 ```js
+const { PAGE } = require('../data/main')
+
 function Auth(please) {
     return {
+        async goto() {
+            await please.goto(PAGE.login.url, PAGE.login.title)
+        },
+
         async login(user) {
             await please.fill('input username', '#username', user.username)
             await please.fill('input password', '#password', user.password)
@@ -162,6 +185,15 @@ function Auth(please) {
 
         async logout() {
             await please.click('button logout', 'text=Log out')
+        },
+
+        async seeError(expected) {
+            return please.see('pesan error', '#error', expected)
+        },
+
+        async seeDashboard() {
+            await please.verifyPage(PAGE.dashboard.url, PAGE.dashboard.title)
+            return please.see('teks sukses', 'h1', 'Logged In Successfully')
         }
     }
 }
@@ -171,14 +203,50 @@ module.exports = Auth
 
 ---
 
-### `feature/login.spec.js` — Example test
+### `feature/login.spec.js` — Example test (uses `please` directly)
 
 ```js
 const { test } = require('@playwright/test')
 const { createApp } = require('../app')
-const { PAGE, ACCOUNT } = require('../data/main')
+const { PAGE } = require('../data/main')
 
-test.describe('Login - practicetestautomation.com', () => {
+test.describe('Login', () => {
+
+    test('login berhasil', async ({ page }) => {
+        const { please } = createApp(page, test)
+        await please.goto(PAGE.login.url, PAGE.login.title)
+        await please.fill('input username', '#username', 'student')
+        await please.fill('input password', '#password', 'Password123')
+        await please.click('button submit', '#submit')
+        await please.verifyPage(PAGE.dashboard.url, PAGE.dashboard.title)
+        await please.see('teks sukses', 'h1', 'Logged In Successfully')
+        await please.click('button logout', 'text=Log out')
+    })
+
+    test('login gagal - username salah', async ({ page }) => {
+        const { please } = createApp(page, test)
+        await please.goto(PAGE.login.url, PAGE.login.title)
+        await please.fill('input username', '#username', 'wronguser')
+        await please.fill('input password', '#password', 'Password123')
+        await please.click('button submit', '#submit')
+        await please.see('pesan error', '#error', 'Your username is invalid!')
+    })
+
+})
+```
+
+Setiap `test` block mendapat `page` sendiri dari Playwright — tidak ada shared state antar test.
+
+### `feature/login-using-component.spec.js` — Same suite via `AUTH` component
+
+The same scenarios rewritten using `components/auth.js` instead of calling `please` directly. This file is `test.describe.skip` by default — flip it to `test.describe` (and skip/remove the other spec) once you migrate to the component pattern.
+
+```js
+const { test } = require('@playwright/test')
+const { createApp } = require('../app')
+const { ACCOUNT } = require('../data/main')
+
+test.describe.skip('Login - using component', () => {
 
     test('login berhasil', async ({ page }) => {
         const { AUTH } = createApp(page, test)
@@ -198,16 +266,14 @@ test.describe('Login - practicetestautomation.com', () => {
 })
 ```
 
-Setiap `test` block mendapat `page` sendiri dari Playwright — tidak ada shared state antar test.
-
 ---
 
 ## please-test API
 
 | Method | Description |
 |--------|-------------|
-| `please.goto({ url, title? })` | Navigasi ke URL, opsional verifikasi title |
-| `please.verifyPage({ url?, title? })` | Verifikasi URL dan/atau title halaman saat ini |
+| `please.goto(url, title?)` | Navigasi ke URL, opsional verifikasi title |
+| `please.verifyPage(url, title?)` | Verifikasi URL dan/atau title halaman saat ini |
 | `please.url()` | Ambil URL halaman saat ini |
 | `please.title()` | Ambil title halaman saat ini |
 | `please.click(label, selector, delay?)` | Klik elemen |
@@ -217,10 +283,12 @@ Setiap `test` block mendapat `page` sendiri dari Playwright — tidak ada shared
 | `please.scrollTo(label, selector)` | Scroll halaman ke posisi elemen |
 | `please.uploadFile(label, selector, filePath)` | Upload file ke input type=file |
 | `please.datepicker(label, selector, value)` | Isi date picker dengan format tanggal |
-| `please.see(label, selector, expected?)` | Ambil teks/nilai elemen, opsional assert |
+| `please.see(label, selector, expected?, timeout?)` | Ambil teks/nilai elemen, opsional assert |
 | `please.untilShow(label, selector, timeout?)` | Tunggu elemen muncul (default 20 detik) |
 | `please.wait(ms?)` | Pause eksekusi selama N milidetik |
 | `please.screenshot(label?)` | Ambil screenshot, simpan ke folder `screenshots/` |
+| `please.detectLocator(selector)` | Deteksi tipe selector (id/class/text/role/xpath/dll) |
+| `please.toLocator(selector)` | Konversi selector menjadi Playwright `Locator` |
 
 ### Selector yang didukung
 
@@ -246,12 +314,20 @@ Playwright otomatis menemukan semua file `*.spec.js` di folder `feature/`.
 
 ---
 
+## HTML Report
+
+`reporter/please-reporter.js` is a custom Playwright reporter (registered in `playwright.config.js`) that collects every suite/test/step result and writes a self-contained HTML report to `please-report/index.html` after each run.
+
+`npm run report` runs `scripts/open-report.js`, which serves that `please-report/` folder on `http://localhost:9323` and opens it in your default browser. It errors out if you haven't run `npm test` yet (no report to serve).
+
+---
+
 ## Scripts
 
 | Command | Description |
 |---------|-------------|
-| `npm test` | Run all spec files |
-| `npm run report` | Run tests and open HTML report |
+| `npm test` | Run all spec files, generate the HTML report |
+| `npm run report` | Serve and open the last HTML report in your browser |
 
 ---
 
