@@ -113,7 +113,7 @@ function createApp(page, test) {
     const please = new Please(page, test)
     return {
         please,
-        AUTH: new AuthComponent(please)
+        AUTH: AuthComponent(please)
     }
 }
 
@@ -152,21 +152,21 @@ module.exports = {
 ### `components/auth.js` — Reusable actions
 
 ```js
-class Auth {
-    constructor(please) {
-        this.please = please
-    }
+function Auth(please) {
+    return {
+        async login(user) {
+            await please.fill('input username', '#username', user.username)
+            await please.fill('input password', '#password', user.password)
+            await please.click('button submit', '#submit')
+        },
 
-    async login(user) {
-        await this.please.fill('input username', '#username', user.username)
-        await this.please.fill('input password', '#password', user.password)
-        await this.please.click('button submit', '#submit')
-    }
-
-    async logout() {
-        await this.please.click('button logout', 'text=Log out')
+        async logout() {
+            await please.click('button logout', 'text=Log out')
+        }
     }
 }
+
+module.exports = Auth
 ```
 
 ---
