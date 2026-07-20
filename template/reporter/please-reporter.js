@@ -5,13 +5,15 @@ const fs = require('fs')
 const path = require('path')
 
 /**
- * @typedef {{ title: string, status: 'passed'|'failed'|'skipped'|'timedOut', duration: number, error?: string, steps: {title:string,duration:number,error?:string}[] }} TestResult
+ * @typedef {{ name: string, contentType: string, path?: string }} Attachment
+ * @typedef {{ title: string, status: 'passed'|'failed'|'skipped'|'timedOut', duration: number, error?: string, steps: {title:string,duration:number,error?:string}[], attachments: Attachment[] }} TestResult
  * @typedef {{ title: string, file: string, tests: TestResult[] }} Suite
  */
 
 class PleaseReporter {
     constructor(options = {}) {
         this._outputFile = options.outputFile || 'please-report/index.html'
+        this._jsonFile = options.jsonFile || 'please-report/results.json'
         /** @type {Suite[]} */
         this._suites = []
         this._startTime = Date.now()
@@ -27,6 +29,13 @@ class PleaseReporter {
         const outputPath = path.resolve(process.cwd(), this._outputFile)
         fs.mkdirSync(path.dirname(outputPath), { recursive: true })
         fs.writeFileSync(outputPath, html, 'utf8')
+
+        // JSON hasil (termasuk attachment screenshot/video) — dikonsumsi oleh
+        // Please Blocks IDE untuk menampilkan report di dalam aplikasi.
+        const jsonPath = path.resolve(process.cwd(), this._jsonFile)
+        fs.mkdirSync(path.dirname(jsonPath), { recursive: true })
+        fs.writeFileSync(jsonPath, JSON.stringify({ generatedAt: Date.now(), suites }, null, 2), 'utf8')
+
         console.log(`\nRun "npm run report" to open it in the browser.\n`)
     }
 
@@ -43,12 +52,22 @@ class PleaseReporter {
                     duration: s.duration,
                     error: s.error?.message,
                 }))
+                // Attachment berisi absolute path di disk (screenshot/video/trace).
+                // Simpan relatif ke cwd agar bisa dijadikan URL oleh server tanpa bocor path sistem.
+                const attachments = (result.attachments || [])
+                    .filter(a => a.path)
+                    .map(a => ({
+                        name: a.name,
+                        contentType: a.contentType,
+                        path: path.relative(process.cwd(), a.path).replace(/\\/g, '/'),
+                    }))
                 return {
                     title: t.title,
                     status: result.status || 'skipped',
                     duration: result.duration || 0,
                     error: result.error?.message,
                     steps,
+                    attachments,
                 }
             })
             results.push({
@@ -393,6 +412,26 @@ class PleaseReporter {
       line-height: 1.6;
     }
 
+    .attachments {
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .attachment-img {
+      max-width: 260px;
+      max-height: 160px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border-subtle);
+      cursor: zoom-in;
+    }
+    .attachment-video {
+      max-width: 320px;
+      max-height: 200px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border-subtle);
+    }
+
     /* ── Footer ── */
     .footer {
       margin-top: 48px;
@@ -490,7 +529,7 @@ class PleaseReporter {
 
     /** @param {TestResult} t @param {number} idx @returns {string} */
     _buildTestRow(t, idx) {
-        const hasDetail = t.steps.length > 0 || !!t.error
+        const hasDetail = t.steps.length > 0 || !!t.error || (t.attachments || []).length > 0
         const stepsHtml = t.steps.map(s => `
     <div class="step">
       <span class="step-icon${s.error ? ' err' : ''}">${s.error ? '✕' : '✓'}</span>
@@ -501,6 +540,14 @@ class PleaseReporter {
         const errorHtml = t.error
             ? `<div class="error-block">${this._esc(t.error)}</div>`
             : ''
+
+        const screenshot = (t.attachments || []).find(a => a.name === 'screenshot')
+        const video = (t.attachments || []).find(a => a.name === 'video')
+        const attachmentsHtml = screenshot || video ? `
+    <div class="attachments">
+      ${screenshot ? `<a href="${this._esc(screenshot.path)}" target="_blank"><img class="attachment-img" src="${this._esc(screenshot.path)}" alt="screenshot" /></a>` : ''}
+      ${video ? `<video class="attachment-video" src="${this._esc(video.path)}" controls></video>` : ''}
+    </div>` : ''
 
         return `
 <div class="test-row">
@@ -515,6 +562,7 @@ class PleaseReporter {
   <div class="test-detail">
     <div class="steps">${stepsHtml}</div>
     ${errorHtml}
+    ${attachmentsHtml}
   </div>` : ''}
 </div>`
     }
